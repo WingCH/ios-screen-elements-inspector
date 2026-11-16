@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "check": "bun run --filter screen-debugger check",
+    "test": "bun run --filter screen-debugger test",
     "build": "bun run --filter screen-debugger build",
     "source": "swipt project source"
   },

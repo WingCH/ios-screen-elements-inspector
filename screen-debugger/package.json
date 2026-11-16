@@ -1,12 +1,12 @@
 {
   "name": "screen-debugger",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "swiplet": {
     "id": "screen-debugger",
     "name": "畫面元素檢查器",
-    "description": "列出目前畫面的可存取元素，方便檢查 Swipt 實際讀到的內容。",
-    "versionCode": 1,
+    "description": "以截圖檢查畫面元素、OCR 文字與裝置資訊，保留紀錄並複製完整報告給 AI 分析。",
+    "versionCode": 2,
     "icon": {
       "color": "blue",
       "symbol": "list.bullet.rectangle"
@@ -16,7 +16,11 @@
   },
   "scripts": {
     "build": "swipt project build",
-    "check": "tsc"
+    "check": "tsc",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@swipt/api": "0.1.0-nightly.90",

@@ -2,6 +2,8 @@
 
 這是個人的 Swiplet repository，收錄 [畫面元素檢查器](screen-debugger/README.md)。它與 Swipt 官方沒有關聯。
 
+檢查器可保留截圖、完整元素樹、OCR 及裝置資訊，並以原生 SwiftUI 介面提供搜尋、元素詳情、擷取紀錄，以及方便交給 AI 分析的文字／JSON 複製。
+
 ## 在 Swipt 加入 repository
 
 在 Swipt 開啟 **Swiplets → Add → Add Repository**，貼上：

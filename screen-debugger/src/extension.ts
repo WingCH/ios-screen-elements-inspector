@@ -1,103 +1,80 @@
 import * as accessibility from "@swipt/api/accessibility";
-import type { AccessibilityElement } from "@swipt/api/accessibility";
-import { dataDirectory } from "@swipt/api/file-system";
+import * as device from "@swipt/api/device";
+import type { RasterImage } from "@swipt/api/image";
 import { defineAction, defineExtension } from "@swipt/api/swiplet";
+import { z } from "zod";
 
-const report = () => dataDirectory.file("latest-elements.txt");
+import { mapDeviceInfo, mapSnapshot, mapTextLine, observe } from "./capture";
+import type { CaptureRecord, ScreenshotInfo } from "./model";
+import { captureDirectory, capturesDirectory, history, openCapture, removeCapture, saveCapture } from "./storage";
 
-function describe(element: AccessibilityElement, depth: number): string[] {
-  const {
-    role,
-    class: className,
-    traits,
-    label,
-    value,
-    identifier,
-    placeholder,
-    hint,
-    url,
-    frame,
-    point,
-    partial,
-    offScreen,
-    inert,
-    remote,
-    disabled,
-    focused,
-    selected,
-    expanded,
-    secure,
-    selection,
-    actions,
-    truncated,
-    children,
-  } = element;
-  const fields = {
-    role,
-    class: className,
-    traits,
-    label,
-    value,
-    identifier,
-    placeholder,
-    hint,
-    url,
-    frame,
-    point,
-    partial,
-    offScreen,
-    inert,
-    remote,
-    disabled,
-    focused,
-    selected,
-    expanded,
-    secure,
-    selection,
-    actions,
-    truncated,
-  };
-  return [
-    `${"  ".repeat(depth)}${JSON.stringify(fields)}`,
-    ...children.flatMap((child) => describe(child, depth + 1)),
-  ];
-}
+const captureID = z.object({ id: z.string().regex(/^\d+$/) });
+const copiedText = z.object({ text: z.string() });
 
 export default defineExtension({
   actions: {
     capture: defineAction({
-      title: "擷取畫面元素",
-      description: "讀取目前畫面的完整可存取元素樹，不執行點按或其他操作。",
+      title: "擷取完整畫面資料",
+      description: "取得截圖、可存取元素、OCR 文字和裝置資訊，儲存在本機擷取紀錄。",
       async run(_, { caller, signal }) {
-        if (caller === "app") {
-          await sleep(5_000, { signal });
-        }
-        const captured = await accessibility.snapshot({
-          scope: "fullScreen",
-          full: true,
-          signal,
-        });
-        const lines = [
-          `app: ${captured.app}`,
-          `snapshotTime: ${captured.time}`,
-          `snapshotTruncated: ${captured.truncated === true}`,
-          "root:",
-          ...describe(captured.root, 0),
-        ];
-        if (captured.system !== undefined) {
-          lines.push("system:", ...describe(captured.system, 0));
-        }
-        const text = lines.join("\n");
-        await report().write(text);
-        return text;
+        if (caller === "app") await sleep(5_000, { signal });
+        const startedAt = Date.now();
+        const id = String(startedAt);
+        const root = capturesDirectory();
+        if (!(await root.exists())) await root.create();
+        const directory = captureDirectory(id);
+        await directory.create();
+        const deviceInfo = await observe(async () => mapDeviceInfo(await device.info({ signal })), signal);
+        let image: RasterImage | undefined;
+        const screenshot = await observe<ScreenshotInfo>(async () => {
+          image = await device.screenshot({ signal });
+          await image.save(directory.file("screen.png"), { format: "png", signal });
+          return {
+            file: "screen.png",
+            width: image.width,
+            height: image.height,
+            scale: image.scale,
+            frame: [...image.frame],
+            time: image.time,
+            timestamp: image.timestamp,
+          };
+        }, signal);
+        const snapshot = await observe(async () => mapSnapshot(
+          await accessibility.snapshot({ scope: "fullScreen", full: true, signal }),
+        ), signal);
+        const capturedImage = image;
+        const ocr = capturedImage === undefined
+          ? { status: "skipped" as const, startedAt: Date.now(), finishedAt: Date.now(),
+              reason: "截圖未能取得，因此未執行 OCR。" }
+          : await observe(async () => (await capturedImage.recognizeText({
+              detectLanguage: true, level: "accurate", signal,
+            })).map(mapTextLine), signal);
+        const record: CaptureRecord = {
+          schemaVersion: 1, id, startedAt, finishedAt: Date.now(),
+          device: deviceInfo, screenshot, accessibility: snapshot, ocr,
+        };
+        await saveCapture(record);
+        return openCapture(id);
       },
     }),
-    latest: defineAction({
-      title: "讀取上次擷取",
-      async run() {
-        const file = report();
-        return (await file.stat()) === null ? "" : file.text();
-      },
+    history: defineAction({
+      title: "讀取擷取紀錄",
+      run: () => history(),
+    }),
+    open: defineAction({
+      title: "開啟擷取紀錄",
+      input: captureID,
+      run: ({ id }) => openCapture(id),
+    }),
+    remove: defineAction({
+      title: "刪除擷取紀錄",
+      input: captureID,
+      run: ({ id }) => removeCapture(id),
+    }),
+    copy: defineAction({
+      title: "複製文字",
+      input: copiedText,
+      run: ({ text }, { signal }) => device.setPasteboard(text, { signal }),
     }),
   },
 });
