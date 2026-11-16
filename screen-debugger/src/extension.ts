@@ -1,10 +1,12 @@
 import * as accessibility from "@swipt/api/accessibility";
 import * as device from "@swipt/api/device";
+import { requestChoice } from "@swipt/api/app-intents";
 import type { RasterImage } from "@swipt/api/image";
 import { defineAction, defineExtension } from "@swipt/api/swiplet";
 import { z } from "zod";
 
 import { mapDeviceInfo, mapSnapshot, mapTextLine, observe } from "./capture";
+import { finishCapture } from "./completion";
 import type { CaptureRecord, ScreenshotInfo } from "./model";
 import { captureDirectory, capturesDirectory, history, openCapture, removeCapture, saveCapture } from "./storage";
 
@@ -54,8 +56,11 @@ export default defineExtension({
           schemaVersion: 1, id, startedAt, finishedAt: Date.now(),
           device: deviceInfo, screenshot, accessibility: snapshot, ocr, foreground,
         };
-        await saveCapture(record);
-        return openCapture(id);
+        const finished = await finishCapture(record, async () => {
+          await saveCapture(record);
+          return openCapture(id);
+        }, caller === "app" ? (message) => requestChoice(["完成"], message, { signal }) : null);
+        return { ...finished.value, completion: finished.completion };
       },
     }),
     history: defineAction({

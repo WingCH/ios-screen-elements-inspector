@@ -16,6 +16,8 @@
 
 ## 建置
 
+完成提示使用的 Swipt API 需要 iOS 26 或以上；本套件已明確宣告此最低版本。
+
 在本目錄執行：
 
 ```sh
@@ -40,6 +42,10 @@ bun run swipt swiplet install dist/screen-debugger.swiplet -d <device>
 3. 返回 Swipt，點選截圖的元素框，或按「查看全部資料」。
 4. 按「複製完整報告」，再貼上到 AI 或其他 App。
 
+從 App 按擷取時，資料保存並讀回成功後會顯示「擷取已完成」提示，列出元素與辨識文字數量。你在另一個 App 時，Swipt 會暫時切回來顯示對話框；按「完成」或關閉後，SDK 會按其互動流程返回原本的 App。這是完成對話框，不是 iOS 通知中心橫額。
+
+若關閉提示，擷取紀錄仍保留；若提示無法顯示，介面會說明「資料已儲存」及提示錯誤。API 擷取會直接回傳結果。
+
 所有擷取紀錄保留在本機，可從「紀錄」重新開啟或逐筆刪除。每份紀錄位於 `captures/<id>/`，包含 `report.json`、`report.txt`，以及成功取得時的 `screen.png`。舊版的 `latest-elements.txt` 不會被刪除，但不會出現在新的紀錄清單中。
 
 如果已連上目標裝置的 Swipt API，也可以在目標 App 正顯示時從電腦即時擷取，毋須等待 5 秒：
@@ -59,3 +65,5 @@ bun run swipt swiplet data read screen-debugger captures/<id> -d <device> --outp
 沒有暴露為可存取元素的畫面內容，可能只出現在截圖或 OCR 中。元素樹的 `truncated` 欄位表示來源有否截短結果；完整資料不包含目標 App 的內部變數或私有資料庫。
 
 目前已完成型別檢查、資料處理測試及 Swiplet 建置；使用者的 iOS 27.3 Beta 1 iPhone Duo 尚未連上本機工具，原生 UI、剪貼簿和內外屏實際顯示仍待該裝置驗證。設計與驗證範圍見 [設計紀錄](../docs/inspector-design.md)。
+
+已依使用者確認的 Swipt 0.1.0 (83) 深入追查顯示器路由；完整證據、已排除的假說及待取得的 trace 見 [Swipt Duo 研究](../docs/swipt-duo-accessibility-routing.md)。

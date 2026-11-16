@@ -1,12 +1,13 @@
 {
   "name": "screen-debugger",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "swiplet": {
     "id": "screen-debugger",
     "name": "畫面元素檢查器",
     "description": "以截圖檢查畫面元素、OCR 文字與裝置資訊，保留紀錄並複製完整報告給 AI 分析。",
-    "versionCode": 3,
+    "versionCode": 4,
+    "minimumIOSVersion": 26,
     "icon": {
       "color": "blue",
       "symbol": "list.bullet.rectangle"

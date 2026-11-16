@@ -82,7 +82,9 @@ export default function App() {
       setHistory(await inspector.history());
       setCompact("sidebar");
       const result = summarize(next.record);
-      setStatus(result.overlayIssue
+      setStatus(next.completion?.status === "failed"
+        ? "擷取資料已儲存；完成提示未能顯示：" + next.completion.message
+        : result.overlayIssue
         ? "已儲存紀錄；元素來源與截圖無法對應，預覽改用 OCR 文字框。"
         : result.complete ? "擷取完成" : "已儲存可取得的資料；部分項目讀取失敗。");
     } catch (error) {
@@ -138,6 +140,7 @@ export default function App() {
             <Section>
               <Text modifiers={[font({ textStyle: "title2", weight: "bold" })]}>看清程式讀到的畫面</Text>
               <Text modifiers={[secondary]}>擷取截圖、元素、辨識文字與裝置資料，再逐項檢查。</Text>
+              <Text modifiers={[secondary]}>儲存完成後會切回 Swipt 顯示完成提示。</Text>
               <Button label={capturing ? (countdown > 0 ? countdown + " 秒後擷取" : "正在擷取…") : "擷取目前畫面"}
                 systemImage="camera.viewfinder" onPress={capture}
                 modifiers={[buttonStyle("borderedProminent"), disabled(capturing)]} />

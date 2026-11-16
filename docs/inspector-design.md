@@ -69,6 +69,14 @@ Apple 原文：「Avoid hard-coding system color values in your app.」— [Colo
 
 複製不經過清單的摘要或搜尋結果，因此不會因畫面上的省略號或篩選而丟失原始欄位。來源沒有提供的欄位保持缺省；空字串、0 及 false 保留。
 
+## 擷取完成提示
+
+使用者已選擇無須額外設定的 Swipt 完成對話框。從 App 啟動的擷取會先保存並讀回紀錄，再呼叫 requestChoice，提供單一「完成」選項。提示顯示取得的元素／OCR 數量，以及來源待核對狀態。關閉提示不影響已保存的紀錄；提示本身出錯時，回傳保存結果並在介面顯示提示錯誤。
+
+SDK 原文：「Swipt presents them」以及「returns to that app when the interaction ends.」— [app-intents.d.ts，第 4–7 行](https://github.com/swipt-automation/swipt/blob/69bb1cf7ac4a5d0425f64781615952dd42c3f063/api/app-intents.d.ts#L4)。這支持在背景完成後由 Swipt 顯示對話框，再恢復原本 App 的流程；本次沒有聲稱發送 iOS 通知中心橫額。
+
+API 擷取不會要求手機使用者確認對話框。提示的原生呈現、切回及返回行為仍待目標裝置驗證。
+
 ## 座標與時間
 
 疊框使用 screenshot.frame 的 points 座標範圍映射到預覽，不再乘裝置 scale。上游原文：「Width: float64(width) / scale, Height: float64(height) / scale」— [Swipt nightly.90 phone.go，第 159–174 行](https://github.com/swipt-automation/swipt/blob/522a0fbfc9a8dc47b2c15b710cb7ac4bd6576104/internal/device/phone.go#L159)。這支持使用邏輯座標。
@@ -80,5 +88,7 @@ Apple 原文：「Avoid hard-coding system color values in your app.」— [Colo
 ## 驗證範圍
 
 已完成 TypeScript 檢查及 13 項資料處理測試，涵蓋初版資料保留、搜尋、幾何與報告測試，以及實際 Duo 來源不一致、App 不一致、無內容容器及 OCR 疊框回歸案例。已重播使用者提供的完整報告，確認停止錯誤元素疊框並取得 45 個 OCR 框；原生畫面效果仍待使用者裝置驗證。
+
+完成提示新增 6 項測試，合共 19 項：涵蓋先保存後提示、保存失敗時不提示、關閉與顯示失敗不抹除結果，以及未取得資料與 0 個結果的區別。
 
 未完成使用者裝置上的畫面驗證。Device MCP 目前只有 iOS 27.1 Duo Simulator，沒有使用者的 iOS 27.3 Beta 1 目標。因此尚未證明：實機截圖與框線對齊、點選與搜尋互動、剪貼簿貼上、內外屏切換、最大 Dynamic Type、深色及提高對比顯示。
