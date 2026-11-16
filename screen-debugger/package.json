@@ -1,0 +1,29 @@
+{
+  "name": "screen-debugger",
+  "version": "0.1.0",
+  "private": true,
+  "swiplet": {
+    "id": "screen-debugger",
+    "name": "畫面元素檢查器",
+    "description": "列出目前畫面的可存取元素，方便檢查 Swipt 實際讀到的內容。",
+    "versionCode": 1,
+    "icon": {
+      "color": "blue",
+      "symbol": "list.bullet.rectangle"
+    },
+    "app": "./src/App.tsx",
+    "extension": "./src/extension.ts"
+  },
+  "scripts": {
+    "build": "swipt project build",
+    "check": "tsc"
+  },
+  "devDependencies": {
+    "@swipt/api": "0.1.0-nightly.90",
+    "@swipt/cli": "0.1.0-nightly.90",
+    "typescript": "^7.0.2",
+    "@expo/ui": "~58.0.26",
+    "@types/react": "~19.3.0",
+    "react": "19.3.0"
+  }
+}

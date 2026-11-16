@@ -1,0 +1,27 @@
+{
+  "name": "ios-screen-elements-inspector",
+  "private": true,
+  "source": {
+    "name": "畫面元素檢查器",
+    "localizedNames": {
+      "en": "Screen Elements Inspector",
+      "zh-Hant": "畫面元素檢查器"
+    },
+    "icon": {
+      "symbol": "list.bullet.rectangle",
+      "color": "blue"
+    },
+    "url": "https://github.com/WingCH/ios-screen-elements-inspector/releases/latest/download/"
+  },
+  "workspaces": [
+    "screen-debugger"
+  ],
+  "scripts": {
+    "check": "bun run --filter screen-debugger check",
+    "build": "bun run --filter screen-debugger build",
+    "source": "swipt project source"
+  },
+  "devDependencies": {
+    "@swipt/cli": "0.1.0-nightly.90"
+  }
+}
