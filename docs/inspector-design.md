@@ -36,7 +36,9 @@
     │ 複製完整報告  │ 文字選取、複製、分享報告 │
     └──────────────┴─────────────────────────┘
 
-這個產品的主要視覺特徵是截圖與元素資料之間的對應；其他部分保持安靜，方便閱讀。末層元素與按鈕預設顯示框線，容器仍可從完整元素樹選取。選取後以較粗框線及元素清單中的勾選記號標示，避免只靠顏色。
+這個產品的主要視覺特徵是截圖與元素資料之間的對應；其他部分保持安靜，方便閱讀。App 控制項及有文字的末層元素預設顯示框線，容器與系統資料仍可從完整元素樹選取。選取後以較粗框線及元素清單中的勾選記號標示，避免只靠顏色。
+
+2026-11-16 實際 Duo 報告顯示截圖與元素來源範圍不同。現已加入來源範圍／App 檢查，不一致時保留原始資料、停用元素疊框並改用同一截圖的 OCR 框，見 [診斷紀錄](overlay-source-mismatch.md)。
 
 原始 JSON 及大段報告放在獨立檢視，讓主要畫面先顯示有用摘要。Apple 原文：「Use progressive disclosure to make layouts cleaner and easier to interact with.」— [Layout，Visual hierarchy](https://developer.apple.com/design/human-interface-guidelines/layout#Visual-hierarchy)。此處按該原則分開摘要與完整資料。
 
@@ -77,6 +79,6 @@ Apple 原文：「Avoid hard-coding system color values in your app.」— [Colo
 
 ## 驗證範圍
 
-已完成 TypeScript 檢查、Swiplet 建置及 9 項資料處理測試，包括 getter 欄位與空值保留、層級／搜尋、3x scale 與寬畫面座標、報告 JSON 完整性、失敗與取消，以及 OCR 候選資料。
+已完成 TypeScript 檢查及 13 項資料處理測試，涵蓋初版資料保留、搜尋、幾何與報告測試，以及實際 Duo 來源不一致、App 不一致、無內容容器及 OCR 疊框回歸案例。已重播使用者提供的完整報告，確認停止錯誤元素疊框並取得 45 個 OCR 框；原生畫面效果仍待使用者裝置驗證。
 
 未完成使用者裝置上的畫面驗證。Device MCP 目前只有 iOS 27.1 Duo Simulator，沒有使用者的 iOS 27.3 Beta 1 目標。因此尚未證明：實機截圖與框線對齊、點選與搜尋互動、剪貼簿貼上、內外屏切換、最大 Dynamic Type、深色及提高對比顯示。

@@ -1,0 +1,271 @@
+{
+  "screenshot": {
+    "file": "screen.png",
+    "width": 669,
+    "height": 951,
+    "scale": 3,
+    "frame": [
+      0,
+      0,
+      669,
+      951
+    ],
+    "time": null,
+    "timestamp": 1794801752763.757
+  },
+  "snapshot": {
+    "app": "com.apple.SleepLockScreen",
+    "time": 1794801753523,
+    "root": {
+      "id": "root",
+      "role": "application",
+      "traits": [],
+      "class": "UIApplication",
+      "frame": [
+        0,
+        0,
+        466,
+        678
+      ],
+      "children": [
+        {
+          "id": "root.0",
+          "role": "window",
+          "traits": [],
+          "class": "_UIViewServiceSecureWindow",
+          "frame": [
+            0,
+            0,
+            466,
+            678
+          ],
+          "children": [
+            {
+              "id": "root.0.0",
+              "role": "other",
+              "traits": [],
+              "class": "UITransitionView",
+              "frame": [
+                0,
+                0,
+                466,
+                678
+              ],
+              "children": [
+                {
+                  "id": "root.0.0.0",
+                  "role": "other",
+                  "traits": [],
+                  "class": "UIDropShadowView",
+                  "frame": [
+                    0,
+                    0,
+                    466,
+                    678
+                  ],
+                  "children": [
+                    {
+                      "id": "root.0.0.0.0",
+                      "role": "other",
+                      "traits": [],
+                      "class": "_UIDropShadowClippingView",
+                      "frame": [
+                        0,
+                        0,
+                        466,
+                        678
+                      ],
+                      "children": [
+                        {
+                          "id": "root.0.0.0.0.0",
+                          "role": "other",
+                          "traits": [],
+                          "class": "UIView",
+                          "frame": [
+                            0,
+                            0,
+                            466,
+                            678
+                          ],
+                          "children": [
+                            {
+                              "id": "root.0.0.0.0.0.0",
+                              "role": "other",
+                              "traits": [],
+                              "class": "UIView",
+                              "frame": [
+                                0,
+                                0,
+                                466,
+                                678
+                              ],
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "system": {
+      "id": "system",
+      "role": "application",
+      "traits": [],
+      "class": "SpringBoard",
+      "frame": [
+        0,
+        0,
+        466,
+        678
+      ],
+      "children": [
+        {
+          "id": "system.34",
+          "role": "window",
+          "traits": [],
+          "class": "SBSecureWindow",
+          "frame": [
+            0,
+            0,
+            669,
+            951
+          ],
+          "children": []
+        },
+        {
+          "id": "system.37",
+          "role": "window",
+          "traits": [],
+          "class": "SBTouchSuppressionShieldWindow",
+          "frame": [
+            0,
+            0,
+            1398,
+            2034
+          ],
+          "children": []
+        }
+      ]
+    }
+  },
+  "ocr": [
+    {
+      "text": "Wi-Fi",
+      "confidence": 1,
+      "frame": [
+        70.49,
+        436.8,
+        44.23,
+        16.59
+      ],
+      "center": [
+        92.61,
+        445.09
+      ],
+      "quad": [
+        [
+          70.49,
+          436.8
+        ],
+        [
+          114.73,
+          436.8
+        ],
+        [
+          114.73,
+          453.38
+        ],
+        [
+          70.49,
+          453.38
+        ]
+      ],
+      "candidates": [
+        {
+          "text": "Wi-Fi",
+          "confidence": 1
+        },
+        {
+          "text": "Wi-Fi",
+          "confidence": 1
+        },
+        {
+          "text": "i-Fi",
+          "confidence": 0.3
+        },
+        {
+          "text": "Wi-F",
+          "confidence": 0.3
+        },
+        {
+          "text": "W-Fi",
+          "confidence": 0.3
+        },
+        {
+          "text": "WiFi",
+          "confidence": 0.3
+        },
+        {
+          "text": "Wi-F",
+          "confidence": 0.3
+        },
+        {
+          "text": "i-Fi",
+          "confidence": 0.3
+        },
+        {
+          "text": "W-Fi",
+          "confidence": 0.3
+        },
+        {
+          "text": "WiFi",
+          "confidence": 0.3
+        }
+      ]
+    },
+    {
+      "text": "軟件更新",
+      "confidence": 1,
+      "frame": [
+        330.32,
+        407.67,
+        69.17,
+        20.93
+      ],
+      "center": [
+        364.91,
+        418.14
+      ],
+      "quad": [
+        [
+          330.32,
+          407.87
+        ],
+        [
+          399.44,
+          407.67
+        ],
+        [
+          399.49,
+          428.41
+        ],
+        [
+          330.38,
+          428.6
+        ]
+      ],
+      "candidates": [
+        {
+          "text": "軟件更新",
+          "confidence": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { mapSnapshot, mapTextLine, observe } from "./capture";
 import {
-  allElements, containsMatch, imageRect, matchesElement, plainOCR, summarize, textReport,
+  accessibilityBoxes, accessibilityOverlayIssue, allElements, containsMatch, imageRect,
+  matchesElement, ocrBoxes, plainOCR, recordOverlayIssue, summarize, textReport,
 } from "./model";
+import mixedDisplays from "./fixtures/mixed-displays.json";
 
 const element = (fields) => ({ role: "button", traits: ["button"], children: [], ...fields });
 const ok = (data) => ({ status: "ok", startedAt: 1, finishedAt: 2, data });
@@ -56,6 +58,52 @@ describe("保留實際元素資料", () => {
 });
 
 describe("截圖與元素位置", () => {
+  test("實際 Duo 報告的鎖定畫面元素樹不能疊在內屏 Settings 截圖上", () => {
+    const before = JSON.stringify(mixedDisplays);
+    expect(accessibilityBoxes(mixedDisplays.snapshot, mixedDisplays.screenshot, 334.5, null, null)).toEqual([]);
+    const issue = accessibilityOverlayIssue(mixedDisplays.snapshot, mixedDisplays.screenshot, null);
+    expect(issue).toContain("466, 678");
+    expect(issue).toContain("669, 951");
+    expect(JSON.stringify(mixedDisplays)).toBe(before);
+  });
+  test("來源尺寸相同但 App 不同也不能疊加", () => {
+    const snapshot = {
+      ...mixedDisplays.snapshot,
+      root: { ...mixedDisplays.snapshot.root, frame: [0, 0, 669, 951] },
+    };
+    expect(accessibilityBoxes(snapshot, mixedDisplays.screenshot, 334.5, null, "com.apple.Preferences")).toEqual([]);
+    expect(accessibilityOverlayIssue(snapshot, mixedDisplays.screenshot, "com.apple.Preferences"))
+      .toContain("com.apple.SleepLockScreen");
+  });
+  test("不把無內容的葉容器或 SpringBoard 視窗當成 App 控制項", () => {
+    const snapshot = mapSnapshot({
+      app: "example.app", time: 1,
+      root: element({ role: "application", traits: [], frame: [0, 0, 400, 800], children: [
+        element({ role: "other", traits: [], class: "UIView", frame: [0, 0, 400, 800] }),
+        element({ label: "關於", frame: [100, 200, 80, 44] }),
+        element({ label: "隱藏按鈕", inert: true, frame: [100, 300, 80, 44] }),
+      ] }),
+      system: element({ role: "application", traits: [], frame: [0, 0, 400, 800], children: [
+        element({ role: "window", traits: [], frame: [0, 0, 400, 800] }),
+      ] }),
+    });
+    expect(accessibilityBoxes(snapshot, shot, 200, null, "example.app").map(({ element }) => element.id))
+      .toEqual(["root.1"]);
+    expect(accessibilityBoxes(snapshot, shot, 200, "root.0", "example.app").map(({ element }) => element.id))
+      .toEqual(["root.0", "root.1"]);
+  });
+  test("不縮放錯誤元素樹湊截圖；OCR 框使用同一截圖內的實際文字位置", () => {
+    const record = {
+      screenshot: ok(mixedDisplays.screenshot), accessibility: ok(mixedDisplays.snapshot),
+      ocr: ok(mixedDisplays.ocr),
+    };
+    expect(recordOverlayIssue(record)).not.toBeNull();
+    const boxes = ocrBoxes(record, 334.5);
+    expect(boxes).toHaveLength(2);
+    expect(boxes[0].index).toBe(0);
+    const expected = [35.245, 218.4, 22.115, 8.295];
+    boxes[0].projected.forEach((value, index) => expect(value).toBeCloseTo(expected[index], 5));
+  });
   test("以 points 映射，不把 3x scale 再乘一次", () => {
     expect(imageRect([300, 50, 80, 40], shot, 200)).toEqual([150, 25, 40, 20]);
   });

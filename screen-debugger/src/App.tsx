@@ -30,6 +30,7 @@ export default function App() {
   const [opened, setOpened] = useState<OpenCapture | null>(null);
   const [history, setHistory] = useState<CaptureSummary[]>([]);
   const [selectedID, setSelectedID] = useState<string | null>(null);
+  const [selectedText, setSelectedText] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>("elements");
   const [query, setQuery] = useState("");
   const searchText = useNativeState("");
@@ -50,6 +51,7 @@ export default function App() {
   const accept = (next: OpenCapture) => {
     setOpened(next);
     setSelectedID(null);
+    setSelectedText(null);
     setQuery("");
     searchText.value = "";
     setTab("elements");
@@ -79,7 +81,10 @@ export default function App() {
       accept(next);
       setHistory(await inspector.history());
       setCompact("sidebar");
-      setStatus(summarize(next.record).complete ? "擷取完成" : "已儲存可取得的資料；部分項目讀取失敗。");
+      const result = summarize(next.record);
+      setStatus(result.overlayIssue
+        ? "已儲存紀錄；元素來源與截圖無法對應，預覽改用 OCR 文字框。"
+        : result.complete ? "擷取完成" : "已儲存可取得的資料；部分項目讀取失敗。");
     } catch (error) {
       reportError(error);
     } finally {
@@ -93,7 +98,14 @@ export default function App() {
   };
   const selectElement = (id: string) => {
     setSelectedID(id);
+    setSelectedText(null);
     setTab("elements");
+    setCompact("detail");
+  };
+  const selectText = (index: number) => {
+    setSelectedText(index);
+    setSelectedID(null);
+    setTab("ocr");
     setCompact("detail");
   };
   const openHistory = async (id: string) => {
@@ -144,7 +156,8 @@ export default function App() {
                 <Button label="複製完整報告" systemImage="doc.on.doc" onPress={() => copy(report)} />
               </Section>
               <ScreenshotPanel key={opened.record.id} opened={opened}
-                selectedID={selectedID} onSelect={selectElement} />
+                selectedID={selectedID} selectedText={selectedText}
+                onSelect={selectElement} onSelectText={selectText} />
               <Section footer={<Text>截圖與元素依序讀取；若畫面正在移動，框線位置可能不同。</Text>}>
                 <Text modifiers={[secondary]}>所有紀錄只儲存在本機；你可以在「紀錄」逐筆刪除。</Text>
               </Section>
@@ -187,7 +200,7 @@ export default function App() {
               {tab === "ocr" ? <>
                 <Section><Button label="複製全部辨識文字" systemImage="doc.on.doc"
                   onPress={() => copy(plainOCR(opened.record))} /></Section>
-                <OCRPanel record={opened.record} onCopy={copy} />
+                <OCRPanel record={opened.record} selectedIndex={selectedText} onCopy={copy} />
               </> : null}
               {tab === "device" ? <DevicePanel opened={opened} onCopy={copy} /> : null}
               {tab === "report" ? <Section title="完整資料">
@@ -218,7 +231,7 @@ export default function App() {
                 <VStack alignment="leading" spacing={4}>
                   <Text modifiers={[font({ textStyle: "headline" })]}>{entry.app ?? "未取得 App 識別"}</Text>
                   <Text modifiers={[secondary]}>{date(entry.startedAt)}</Text>
-                  <Text>{counts(entry) + " · " + (entry.complete ? "完整" : "部分資料")}</Text>
+                  <Text>{counts(entry) + " · " + (entry.overlayIssue ? "來源待核對" : entry.complete ? "完整" : "部分資料")}</Text>
                 </VStack>
               </Button>
               <Button label="刪除此紀錄" role="destructive" onPress={() => setDeleting(entry.id)} />
@@ -243,6 +256,12 @@ export default function App() {
 function DevicePanel({ opened, onCopy }: { opened: OpenCapture; onCopy: (text: string) => void }) {
   const { record } = opened;
   return <>
+    <Section title="前景 App">
+      {record.foreground ? <>
+        <ObservationError observation={record.foreground} />
+        {record.foreground.status === "ok" ? <Text modifiers={[selectable]}>{record.foreground.data}</Text> : null}
+      </> : <Text>這份舊紀錄未另外讀取前景 App。</Text>}
+    </Section>
     <Section title="裝置資料">
       <ObservationError observation={record.device} />
       {record.device.status === "ok" ? <>

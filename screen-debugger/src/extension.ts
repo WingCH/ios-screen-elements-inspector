@@ -25,6 +25,7 @@ export default defineExtension({
         const directory = captureDirectory(id);
         await directory.create();
         const deviceInfo = await observe(async () => mapDeviceInfo(await device.info({ signal })), signal);
+        const foreground = await observe(() => device.foregroundApplication.get({ signal }), signal);
         let image: RasterImage | undefined;
         const screenshot = await observe<ScreenshotInfo>(async () => {
           image = await device.screenshot({ signal });
@@ -51,7 +52,7 @@ export default defineExtension({
             })).map(mapTextLine), signal);
         const record: CaptureRecord = {
           schemaVersion: 1, id, startedAt, finishedAt: Date.now(),
-          device: deviceInfo, screenshot, accessibility: snapshot, ocr,
+          device: deviceInfo, screenshot, accessibility: snapshot, ocr, foreground,
         };
         await saveCapture(record);
         return openCapture(id);

@@ -1,14 +1,14 @@
 import {
   Button, DisclosureGroup, HStack, Image, LabeledContent, Rectangle,
-  Section, Text, Toggle, VStack, ZStack,
+  Picker, Section, Text, Toggle, VStack, ZStack,
 } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel, aspectRatio, border, contentShape, font, foregroundStyle,
-  frame, lineLimit, offset, onGeometryChange, onTapGesture, resizable, shapes, textSelection,
+  frame, lineLimit, offset, onGeometryChange, onTapGesture, pickerStyle, resizable, shapes, tag, textSelection,
 } from "@expo/ui/swift-ui/modifiers";
 import { useState } from "react";
 import type { CaptureRecord, ElementInfo, Observation, OpenCapture } from "./model";
-import { allElements, containsMatch, elementTitle, imageRect, matchesElement } from "./model";
+import { accessibilityBoxes, allElements, containsMatch, elementTitle, matchesElement, ocrBoxes, recordOverlayIssue } from "./model";
 
 export const secondary = foregroundStyle({ type: "hierarchical", style: "secondary" });
 export const selectable = textSelection(true);
@@ -50,29 +50,37 @@ function OverlayBox({ id, bounds, selected, label, onSelect }: {
   ]} />;
 }
 
-export function ScreenshotPanel({ opened, selectedID, onSelect }: {
-  opened: OpenCapture; selectedID: string | null; onSelect: (id: string) => void;
+export function ScreenshotPanel({ opened, selectedID, selectedText, onSelect, onSelectText }: {
+  opened: OpenCapture; selectedID: string | null; selectedText: number | null;
+  onSelect: (id: string) => void; onSelectText: (index: number) => void;
 }) {
   const [width, setWidth] = useState(0);
   const [showFrames, setShowFrames] = useState(true);
+  const [chosenSource, setChosenSource] = useState<"accessibility" | "ocr" | null>(null);
   const { record, screenshotURI } = opened;
   const shot = record.screenshot.status === "ok" ? record.screenshot.data : null;
-  const elements = record.accessibility.status === "ok"
-    ? allElements(record.accessibility.data)
+  const issue = recordOverlayIssue(record);
+  const source = chosenSource ?? (issue === null ? "accessibility" : "ocr");
+  const boxes = shot !== null && record.accessibility.status === "ok"
+    ? accessibilityBoxes(record.accessibility.data, shot, width, selectedID,
+        record.foreground?.status === "ok" ? record.foreground.data : null)
     : [];
-  const boxes = shot === null ? [] : elements
-    .filter((element) => element.frame && !element.offScreen && (
-      element.id === selectedID || element.children.length === 0 ||
-      element.role === "button" || element.traits.includes("button")
-    ))
-    .flatMap((element) => {
-      const projected = imageRect(element.frame!, shot, width);
-      return projected ? [{ element, projected }] : [];
-    })
-    .sort((a, b) => b.projected[2] * b.projected[3] - a.projected[2] * a.projected[3]);
+  const textBoxes = ocrBoxes(record, width);
 
   return <Section title="畫面">
     <ObservationError observation={record.screenshot} />
+    {issue ? <Text modifiers={[selectable]}>
+      {issue + " 原始元素仍可在「元素」與「原始」查看。"}
+    </Text> : null}
+    <Picker<"accessibility" | "ocr"> label="框線來源" selection={source}
+      onSelectionChange={setChosenSource} modifiers={[pickerStyle("segmented")]}>
+      <Text modifiers={[tag("accessibility")]}>可存取元素</Text>
+      <Text modifiers={[tag("ocr")]}>文字辨識 OCR</Text>
+    </Picker>
+    {source === "ocr" ? <ObservationError observation={record.ocr} /> : null}
+    {source === "accessibility" && selectedID?.startsWith("system") ? <Text modifiers={[secondary]}>
+      選取的是系統視窗資料，未確認它屬於這張截圖；請在元素詳情查看，預覽不疊加系統視窗。
+    </Text> : null}
     {shot && screenshotURI ? (
       <VStack alignment="leading" spacing={12} modifiers={[
         frame({ maxWidth: Infinity }),
@@ -88,18 +96,26 @@ export function ScreenshotPanel({ opened, selectedID, onSelect }: {
               frame({ width, height: width * shot.frame[3] / shot.frame[2] }),
               accessibilityLabel("擷取的原始畫面"),
             ]} />
-            {boxes.filter(({ element }) => showFrames || element.id === selectedID)
+            {source === "accessibility" ? boxes.filter(({ element }) => showFrames || element.id === selectedID)
               .map(({ element, projected }) => (
                 <OverlayBox key={element.id} id={element.id} bounds={projected}
                   selected={element.id === selectedID}
                   label={element.role + " · " + elementTitle(element)}
                   onSelect={onSelect} />
+              )) : textBoxes.filter(({ index }) => showFrames || index === selectedText)
+              .map(({ index, projected }) => (
+                <OverlayBox key={"ocr." + index} id={"ocr." + index} bounds={projected}
+                  selected={index === selectedText}
+                  label={"OCR 第 " + (index + 1) + " 行"}
+                  onSelect={() => onSelectText(index)} />
               ))}
           </ZStack>
         ) : <Text>正在調整預覽大小…</Text>}
-        <Toggle label="顯示元素框" isOn={showFrames} onIsOnChange={setShowFrames} />
+        <Toggle label="顯示框線" isOn={showFrames} onIsOnChange={setShowFrames} />
         <Text modifiers={[font({ textStyle: "caption" }), secondary]}>
-          點選框線查看元素。框線顯示末層與按鈕；完整層級見「元素」。
+          {source === "ocr"
+            ? "目前顯示本次截圖的 OCR 文字框，點選查看辨識文字。"
+            : "目前顯示 App 的文字與控制項；系統視窗及完整層級可在「元素」查看。"}
         </Text>
         <Text modifiers={[codeFont, secondary, selectable]}>
           {"截圖 " + shot.width + " × " + shot.height + " pt · scale " + shot.scale}
@@ -149,10 +165,19 @@ export function ElementDetails({ element, onCopy }: {
   </Section>;
 }
 
-export function OCRPanel({ record, onCopy }: {
-  record: CaptureRecord; onCopy: (text: string) => void;
+export function OCRPanel({ record, selectedIndex, onCopy }: {
+  record: CaptureRecord; selectedIndex: number | null; onCopy: (text: string) => void;
 }) {
+  const selectedLine = record.ocr.status === "ok" && selectedIndex !== null
+    ? record.ocr.data[selectedIndex]
+    : undefined;
   return <>
+    {selectedLine ? <Section title={"選取文字 · 第 " + (selectedIndex! + 1) + " 行"}>
+      <Text modifiers={[selectable, font({ textStyle: "headline" })]}>{selectedLine.text}</Text>
+      <Button label="複製選取文字" onPress={() => onCopy(selectedLine.text)} />
+      <Button label="複製選取文字資料" onPress={() => onCopy(JSON.stringify(selectedLine, null, 2))} />
+      <Fields value={selectedLine} />
+    </Section> : null}
     <Section title="圖片辨識文字">
       <Text modifiers={[secondary]}>文字來自本次截圖，位置及信心值保留在每行資料中。</Text>
       <ObservationError observation={record.ocr} />

@@ -95,6 +95,7 @@ export interface CaptureRecord {
   screenshot: Observation<ScreenshotInfo>;
   accessibility: Observation<ElementSnapshot>;
   ocr: Observation<TextLine[]>;
+  foreground?: Observation<string>;
 }
 
 export interface CaptureSummary {
@@ -104,6 +105,7 @@ export interface CaptureSummary {
   elementCount: number | null;
   textLineCount: number | null;
   complete: boolean;
+  overlayIssue?: string | null;
 }
 
 export interface OpenCapture {
@@ -133,6 +135,7 @@ export function summarize(record: CaptureRecord): CaptureSummary {
     textLineCount: record.ocr.status === "ok" ? record.ocr.data.length : null,
     complete: [record.device, record.screenshot, record.accessibility, record.ocr]
       .every((part) => part.status === "ok"),
+    overlayIssue: recordOverlayIssue(record),
   };
 }
 
@@ -168,6 +171,66 @@ export function imageRect(bounds: Rect, screenshot: ScreenshotInfo, width: numbe
     (right - left) * scale, (bottom - top) * scale];
 }
 
+export function accessibilityBoxes(
+  snapshot: ElementSnapshot,
+  screenshot: ScreenshotInfo,
+  width: number,
+  selectedID: string | null,
+  foregroundApp: string | null,
+): { element: ElementInfo; projected: Rect }[] {
+  if (accessibilityOverlayIssue(snapshot, screenshot, foregroundApp) !== null) return [];
+  const visit = (element: ElementInfo): ElementInfo[] => [element, ...element.children.flatMap(visit)];
+  return visit(snapshot.root)
+    .filter((element) => element.frame && !element.offScreen && !element.inert && (
+      element.id === selectedID || element.role === "button" ||
+      ["textField", "secureTextField", "textView", "searchField", "switch", "toggle",
+        "checkBox", "slider", "link"].includes(element.role) ||
+      element.traits.includes("button") || element.traits.includes("textEntry") ||
+      (element.children.length === 0 && Boolean(element.label || element.value || element.placeholder))
+    ))
+    .flatMap((element) => {
+      const projected = imageRect(element.frame!, screenshot, width);
+      return projected ? [{ element, projected }] : [];
+    })
+    .sort((a, b) => b.projected[2] * b.projected[3] - a.projected[2] * a.projected[3]);
+}
+
+export function accessibilityOverlayIssue(
+  snapshot: ElementSnapshot,
+  screenshot: ScreenshotInfo,
+  foregroundApp: string | null,
+): string | null {
+  if (foregroundApp !== null && snapshot.app !== foregroundApp) {
+    return "元素來源為 " + snapshot.app + "，前景 App 為 " + foregroundApp + "，未疊加元素框。";
+  }
+  const bounds = snapshot.root.frame;
+  if (bounds === undefined) return "元素樹沒有來源範圍，未疊加元素框。";
+  if (bounds.some((value, index) => value !== screenshot.frame[index])) {
+    return "元素來源範圍 [" + bounds.join(", ") + "] 與截圖 [" +
+      screenshot.frame.join(", ") + "] 不同，無法確認兩者對應同一畫面，未疊加元素框。";
+  }
+  return null;
+}
+
+export function recordOverlayIssue(record: CaptureRecord): string | null {
+  if (record.accessibility.status !== "ok" || record.screenshot.status !== "ok") {
+    return "截圖或元素未取得，未疊加元素框。";
+  }
+  return accessibilityOverlayIssue(
+    record.accessibility.data, record.screenshot.data,
+    record.foreground?.status === "ok" ? record.foreground.data : null,
+  );
+}
+
+export function ocrBoxes(record: CaptureRecord, width: number): { index: number; projected: Rect }[] {
+  if (record.ocr.status !== "ok" || record.screenshot.status !== "ok") return [];
+  const screenshot = record.screenshot.data;
+  return record.ocr.data.flatMap((line, index) => {
+    const projected = imageRect(line.frame, screenshot, width);
+    return projected ? [{ index, projected }] : [];
+  });
+}
+
 export function plainOCR(record: CaptureRecord): string {
   switch (record.ocr.status) {
     case "ok": return record.ocr.data.map((line) => line.text).join("\n");
@@ -184,6 +247,9 @@ export function textReport(record: CaptureRecord): string {
     "各階段依序擷取，時間可能不同；OCR 來自這份紀錄的截圖。",
     "JSON 包含截圖資訊；截圖圖片另存，未嵌入這段文字。",
     "缺少的欄位表示來源沒有提供；不等於 false、0 或空字串。",
+    "",
+    "## 疊框來源檢查",
+    recordOverlayIssue(record) ?? "未發現元素來源範圍或 App 不一致。",
     "",
     "## OCR 文字",
     plainOCR(record),
